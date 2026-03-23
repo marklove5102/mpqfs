@@ -5,9 +5,9 @@
  * Public stream API wrappers.
  */
 
+#include "../include/mpqfs/mpqfs.h"
 #include "mpq_archive.h"
 #include "mpq_stream.h"
-#include "../include/mpqfs/mpqfs.h"
 
 #include <stdint.h>
 

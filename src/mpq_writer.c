@@ -449,7 +449,8 @@ bool mpqfs_writer_add_file(mpqfs_writer_t *writer, const char *filename,
 	        (const uint8_t *)data, (uint32_t)size,
 	        writer->sector_size_shift,
 	        writer->data_cursor,
-	        entry) != 0) {
+	        entry)
+	    != 0) {
 		free(nameCopy);
 		entry->filename = NULL;
 		mpq_writer_set_error(writer,
@@ -463,6 +464,385 @@ bool mpqfs_writer_add_file(mpqfs_writer_t *writer, const char *filename,
 	writer->data_cursor += entry->compressed_size;
 
 	writer->file_count++;
+	return true;
+}
+
+/* -----------------------------------------------------------------------
+ * Public API: check if a file has been added
+ * ----------------------------------------------------------------------- */
+
+bool mpqfs_writer_has_file(const mpqfs_writer_t *writer,
+    const char *filename)
+{
+	if (!writer || !filename)
+		return false;
+
+	uint32_t nameA = mpq_hash_string(filename, MPQ_HASH_NAME_A);
+	uint32_t nameB = mpq_hash_string(filename, MPQ_HASH_NAME_B);
+
+	for (uint32_t i = 0; i < writer->file_count; i++) {
+		if (writer->files[i].removed)
+			continue;
+		if (writer->files[i].filename != NULL) {
+			if (strcmp(writer->files[i].filename, filename) == 0)
+				return true;
+		} else if (writer->files[i].has_raw_hashes) {
+			if (writer->files[i].hash_a == nameA
+			    && writer->files[i].hash_b == nameB)
+				return true;
+		}
+	}
+	return false;
+}
+
+/* -----------------------------------------------------------------------
+ * Public API: rename a file in the writer metadata
+ * ----------------------------------------------------------------------- */
+
+bool mpqfs_writer_rename_file(mpqfs_writer_t *writer,
+    const char *old_name,
+    const char *new_name)
+{
+	if (!writer || !old_name || !new_name)
+		return false;
+
+	uint32_t nameA = mpq_hash_string(old_name, MPQ_HASH_NAME_A);
+	uint32_t nameB = mpq_hash_string(old_name, MPQ_HASH_NAME_B);
+
+	for (uint32_t i = 0; i < writer->file_count; i++) {
+		if (writer->files[i].removed)
+			continue;
+
+		int match = 0;
+		if (writer->files[i].filename != NULL) {
+			match = (strcmp(writer->files[i].filename, old_name) == 0);
+		} else if (writer->files[i].has_raw_hashes) {
+			match = (writer->files[i].hash_a == nameA
+			    && writer->files[i].hash_b == nameB);
+		}
+
+		if (match) {
+			char *nameCopy = MpqStrdup(new_name);
+			if (!nameCopy) {
+				mpq_writer_set_error(writer,
+				    "mpqfs_writer_rename_file: out of memory");
+				return false;
+			}
+			free(writer->files[i].filename);
+			writer->files[i].filename = nameCopy;
+			writer->files[i].has_raw_hashes = 0;
+			return true;
+		}
+	}
+	return false;
+}
+
+/* -----------------------------------------------------------------------
+ * Public API: remove a file from the writer metadata
+ * ----------------------------------------------------------------------- */
+
+bool mpqfs_writer_remove_file(mpqfs_writer_t *writer,
+    const char *filename)
+{
+	if (!writer || !filename)
+		return false;
+
+	uint32_t nameA = mpq_hash_string(filename, MPQ_HASH_NAME_A);
+	uint32_t nameB = mpq_hash_string(filename, MPQ_HASH_NAME_B);
+
+	for (uint32_t i = 0; i < writer->file_count; i++) {
+		if (writer->files[i].removed)
+			continue;
+
+		int match = 0;
+		if (writer->files[i].filename != NULL) {
+			match = (strcmp(writer->files[i].filename, filename) == 0);
+		} else if (writer->files[i].has_raw_hashes) {
+			match = (writer->files[i].hash_a == nameA
+			    && writer->files[i].hash_b == nameB);
+		}
+
+		if (match) {
+			writer->files[i].removed = 1;
+			return true;
+		}
+	}
+	return false;
+}
+
+/* -----------------------------------------------------------------------
+ * Public API: copy a file from an existing archive (raw, no recompress)
+ * ----------------------------------------------------------------------- */
+
+bool mpqfs_writer_carry_forward(mpqfs_writer_t *writer,
+    const char *filename,
+    mpqfs_archive_t *archive,
+    uint32_t block_index)
+{
+	if (!writer || !filename || !archive) {
+		if (writer) {
+			mpq_writer_set_error(writer,
+			    "mpqfs_writer_carry_forward: invalid arguments");
+		} else {
+			mpq_set_error(NULL, "mpqfs_writer_carry_forward: writer is NULL");
+		}
+		return false;
+	}
+
+	if (block_index >= archive->header.block_table_count) {
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: block_index %u out of range",
+		    block_index);
+		return false;
+	}
+
+	const mpq_block_entry_t *blk = &archive->block_table[block_index];
+
+	if (!(blk->flags & MPQ_FILE_EXISTS)) {
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: block %u not in use",
+		    block_index);
+		return false;
+	}
+
+	/* Check hash table capacity. */
+	if (writer->file_count >= writer->hash_table_size - 1) {
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: hash table full");
+		return false;
+	}
+
+	/* Grow the files array if needed. */
+	if (writer->file_count >= writer->file_capacity) {
+		uint32_t newCap = writer->file_capacity * 2;
+		mpqfs_writer_file_t *newFiles = (mpqfs_writer_file_t *)realloc(
+		    writer->files, newCap * sizeof(mpqfs_writer_file_t));
+		if (!newFiles) {
+			mpq_writer_set_error(writer,
+			    "mpqfs_writer_carry_forward: out of memory");
+			return false;
+		}
+		memset(newFiles + writer->file_capacity, 0,
+		    (newCap - writer->file_capacity) * sizeof(mpqfs_writer_file_t));
+		writer->files = newFiles;
+		writer->file_capacity = newCap;
+	}
+
+	char *nameCopy = MpqStrdup(filename);
+	if (!nameCopy) {
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: out of memory for name");
+		return false;
+	}
+
+	uint32_t rawSize = blk->compressed_size;
+
+	/* Read the raw compressed data from the source archive. */
+	uint8_t *rawBuf = (uint8_t *)malloc(rawSize);
+	if (!rawBuf) {
+		free(nameCopy);
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: out of memory for raw data");
+		return false;
+	}
+
+	if (fseek(archive->fp,
+	        (long)(archive->archive_offset + blk->offset), SEEK_SET)
+	    != 0) {
+		free(rawBuf);
+		free(nameCopy);
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: seek failed on source");
+		return false;
+	}
+
+	if (fread(rawBuf, 1, rawSize, archive->fp) != rawSize) {
+		free(rawBuf);
+		free(nameCopy);
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: read failed on source");
+		return false;
+	}
+
+	/* Write the raw data to the new archive at data_cursor. */
+	if (MpqRawWrite(writer->fp, rawBuf, rawSize) != 0) {
+		free(rawBuf);
+		free(nameCopy);
+		mpq_writer_set_error(writer,
+		    "mpqfs_writer_carry_forward: write failed");
+		return false;
+	}
+
+	free(rawBuf);
+
+	/* Record metadata — same flags/sizes as original, new offset. */
+	mpqfs_writer_file_t *entry = &writer->files[writer->file_count];
+	entry->filename = nameCopy;
+	entry->offset = writer->data_cursor;
+	entry->compressed_size = blk->compressed_size;
+	entry->file_size = blk->file_size;
+	entry->flags = blk->flags;
+	entry->removed = 0;
+
+	writer->data_cursor += rawSize;
+	writer->file_count++;
+
+	return true;
+}
+
+/* -----------------------------------------------------------------------
+ * Internal: read raw compressed data for a block and write it to the
+ * writer's output file at data_cursor.  Returns 0 on success, -1 on
+ * failure.  On success, *out_raw_size receives the number of bytes
+ * written.
+ * ----------------------------------------------------------------------- */
+
+static int MpqCopyRawBlock(mpqfs_writer_t *writer,
+    mpqfs_archive_t *archive,
+    const mpq_block_entry_t *blk,
+    uint32_t *out_raw_size)
+{
+	uint32_t rawSize = blk->compressed_size;
+
+	uint8_t *rawBuf = (uint8_t *)malloc(rawSize);
+	if (!rawBuf)
+		return -1;
+
+	if (fseek(archive->fp,
+	        (long)(archive->archive_offset + blk->offset), SEEK_SET)
+	    != 0) {
+		free(rawBuf);
+		return -1;
+	}
+
+	if (fread(rawBuf, 1, rawSize, archive->fp) != rawSize) {
+		free(rawBuf);
+		return -1;
+	}
+
+	if (MpqRawWrite(writer->fp, rawBuf, rawSize) != 0) {
+		free(rawBuf);
+		return -1;
+	}
+
+	free(rawBuf);
+	*out_raw_size = rawSize;
+	return 0;
+}
+
+/* -----------------------------------------------------------------------
+ * Public API: carry forward all files from an existing archive
+ * ----------------------------------------------------------------------- */
+
+bool mpqfs_writer_carry_forward_all(mpqfs_writer_t *writer,
+    mpqfs_archive_t *archive)
+{
+	if (!writer || !archive) {
+		if (writer) {
+			mpq_writer_set_error(writer,
+			    "mpqfs_writer_carry_forward_all: invalid arguments");
+		} else {
+			mpq_set_error(NULL, "mpqfs_writer_carry_forward_all: writer is NULL");
+		}
+		return false;
+	}
+
+	uint32_t hashCount = archive->header.hash_table_count;
+
+	for (uint32_t h = 0; h < hashCount; h++) {
+		const mpq_hash_entry_t *he = &archive->hash_table[h];
+
+		/* Skip empty / deleted slots. */
+		if (he->block_index == MPQ_HASH_ENTRY_EMPTY
+		    || he->block_index == MPQ_HASH_ENTRY_DELETED)
+			continue;
+
+		if (he->block_index >= archive->header.block_table_count)
+			continue;
+
+		const mpq_block_entry_t *blk = &archive->block_table[he->block_index];
+		if (!(blk->flags & MPQ_FILE_EXISTS))
+			continue;
+
+		/* Check if an entry with the same hash_a/hash_b already
+		 * exists in the writer (added by add_file earlier).
+		 * If so, skip — the newer version takes precedence. */
+		{
+			int duplicate = 0;
+			for (uint32_t i = 0; i < writer->file_count; i++) {
+				if (writer->files[i].removed)
+					continue;
+				if (writer->files[i].has_raw_hashes
+				    && writer->files[i].hash_a == he->hash_a
+				    && writer->files[i].hash_b == he->hash_b) {
+					duplicate = 1;
+					break;
+				}
+				if (writer->files[i].filename != NULL) {
+					uint32_t a = mpq_hash_string(
+					    writer->files[i].filename, MPQ_HASH_NAME_A);
+					uint32_t b = mpq_hash_string(
+					    writer->files[i].filename, MPQ_HASH_NAME_B);
+					if (a == he->hash_a && b == he->hash_b) {
+						duplicate = 1;
+						break;
+					}
+				}
+			}
+			if (duplicate)
+				continue;
+		}
+
+		/* Check capacity. */
+		if (writer->file_count >= writer->hash_table_size - 1) {
+			mpq_writer_set_error(writer,
+			    "mpqfs_writer_carry_forward_all: hash table full");
+			return false;
+		}
+
+		/* Grow files array if needed. */
+		if (writer->file_count >= writer->file_capacity) {
+			uint32_t newCap = writer->file_capacity * 2;
+			mpqfs_writer_file_t *newFiles = (mpqfs_writer_file_t *)realloc(
+			    writer->files, newCap * sizeof(mpqfs_writer_file_t));
+			if (!newFiles) {
+				mpq_writer_set_error(writer,
+				    "mpqfs_writer_carry_forward_all: out of memory");
+				return false;
+			}
+			memset(newFiles + writer->file_capacity, 0,
+			    (newCap - writer->file_capacity) * sizeof(mpqfs_writer_file_t));
+			writer->files = newFiles;
+			writer->file_capacity = newCap;
+		}
+
+		/* Copy raw data from source archive to writer output. */
+		uint32_t rawSize = 0;
+		if (MpqCopyRawBlock(writer, archive, blk, &rawSize) != 0) {
+			mpq_writer_set_error(writer,
+			    "mpqfs_writer_carry_forward_all: failed to copy "
+			    "block %u",
+			    he->block_index);
+			return false;
+		}
+
+		/* Record metadata with raw hashes (no filename). */
+		mpqfs_writer_file_t *entry = &writer->files[writer->file_count];
+		memset(entry, 0, sizeof(*entry));
+		entry->filename = NULL;
+		entry->offset = writer->data_cursor;
+		entry->compressed_size = blk->compressed_size;
+		entry->file_size = blk->file_size;
+		entry->flags = blk->flags;
+		entry->has_raw_hashes = 1;
+		entry->hash_a = he->hash_a;
+		entry->hash_b = he->hash_b;
+		entry->src_hash_slot = h;
+
+		writer->data_cursor += rawSize;
+		writer->file_count++;
+	}
+
 	return true;
 }
 
@@ -487,10 +867,51 @@ static uint32_t *MpqBuildHashTable(mpqfs_writer_t *writer)
 	/* Initialise all entries to "empty" (0xFFFFFFFF for all fields). */
 	memset(table, 0xFF, totalBytes);
 
-	/* Insert each file. */
+	/* Phase 1: Place carry-forward entries at their original hash table
+	 * slot positions.  Because the source and destination archives use
+	 * the same hash_table_size, the reader's probe chain starting from
+	 * hash(filename, TABLE_INDEX) % count will reach these slots at the
+	 * same position as in the source archive.
+	 *
+	 * We must do this first so that filename-based entries (phase 2)
+	 * probe around them correctly. */
 	for (uint32_t f = 0; f < writer->file_count; f++) {
-		const char *filename = writer->files[f].filename;
+		if (writer->files[f].removed)
+			continue;
+		if (!writer->files[f].has_raw_hashes)
+			continue;
 
+		uint32_t slot = writer->files[f].src_hash_slot % count;
+		uint32_t base = slot * 4;
+
+		/* The slot should be empty since carry-forward entries come
+		 * from distinct slots in the source archive.  If there's a
+		 * collision (shouldn't happen in practice), fall back to
+		 * linear probing. */
+		uint32_t idx = slot;
+		for (;;) {
+			base = idx * 4;
+			if (table[base + 3] == MPQ_HASH_ENTRY_EMPTY
+			    || table[base + 3] == MPQ_HASH_ENTRY_DELETED) {
+				table[base + 0] = writer->files[f].hash_a;
+				table[base + 1] = writer->files[f].hash_b;
+				table[base + 2] = 0x00000000;
+				table[base + 3] = f;
+				break;
+			}
+			idx = (idx + 1) % count;
+		}
+	}
+
+	/* Phase 2: Insert filename-based entries with normal hashing and
+	 * linear probing, skipping over slots already occupied by phase 1. */
+	for (uint32_t f = 0; f < writer->file_count; f++) {
+		if (writer->files[f].removed)
+			continue;
+		if (writer->files[f].has_raw_hashes)
+			continue;
+
+		const char *filename = writer->files[f].filename;
 		uint32_t bucket = mpq_hash_string(filename, MPQ_HASH_TABLE_INDEX) % count;
 		uint32_t nameA = mpq_hash_string(filename, MPQ_HASH_NAME_A);
 		uint32_t nameB = mpq_hash_string(filename, MPQ_HASH_NAME_B);
@@ -500,7 +921,6 @@ static uint32_t *MpqBuildHashTable(mpqfs_writer_t *writer)
 		for (;;) {
 			uint32_t base = idx * 4;
 			if (table[base + 3] == MPQ_HASH_ENTRY_EMPTY || table[base + 3] == MPQ_HASH_ENTRY_DELETED) {
-				/* Found an empty slot — fill it in. */
 				table[base + 0] = nameA;      /* hash_a   */
 				table[base + 1] = nameB;      /* hash_b   */
 				table[base + 2] = 0x00000000; /* locale=0, platform=0 */
@@ -508,7 +928,6 @@ static uint32_t *MpqBuildHashTable(mpqfs_writer_t *writer)
 				break;
 			}
 			idx = (idx + 1) % count;
-			/* We already checked capacity in add_file, so this can't loop forever. */
 		}
 	}
 
@@ -550,6 +969,9 @@ static uint32_t *MpqBuildBlockTable(mpqfs_writer_t *writer)
 
 	/* Populate entries for actual files. */
 	for (uint32_t i = 0; i < writer->file_count; i++) {
+		if (writer->files[i].removed)
+			continue;
+
 		uint32_t base = i * 4;
 
 		table[base + 0] = writer->files[i].offset;          /* offset */

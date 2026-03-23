@@ -479,6 +479,105 @@ MPQFS_API bool mpqfs_writer_add_file(mpqfs_writer_t *writer,
     const void *data, size_t size);
 
 /**
+ * Check whether a file with the given name has been added to the writer.
+ *
+ * Only considers files that have not been removed via
+ * mpqfs_writer_remove_file().
+ *
+ * @param writer    Writer handle.
+ * @param filename  Archive-relative filename to look up.
+ * @return          true if the file exists (and has not been removed).
+ */
+MPQFS_API bool mpqfs_writer_has_file(const mpqfs_writer_t *writer,
+    const char *filename);
+
+/**
+ * Rename a previously added file in the writer's metadata.
+ *
+ * The file data is already on disk and is not moved.  Only the filename
+ * stored in the writer's metadata is changed, which affects the hash
+ * table entry that will be generated during mpqfs_writer_close().
+ *
+ * If @p old_name is not found (or was already removed), this is a no-op
+ * and returns false.
+ *
+ * @param writer    Writer handle.
+ * @param old_name  Current archive-relative filename.
+ * @param new_name  New archive-relative filename.
+ * @return          true if the file was found and renamed, false otherwise.
+ */
+MPQFS_API bool mpqfs_writer_rename_file(mpqfs_writer_t *writer,
+    const char *old_name,
+    const char *new_name);
+
+/**
+ * Remove a previously added file from the writer's metadata.
+ *
+ * The file data already written to disk is not reclaimed (there will
+ * be a small amount of dead space in the archive).  The file's block
+ * and hash table entries will be omitted from the tables written by
+ * mpqfs_writer_close().
+ *
+ * If @p filename is not found (or was already removed), this is a
+ * no-op and returns false.
+ *
+ * @param writer    Writer handle.
+ * @param filename  Archive-relative filename to remove.
+ * @return          true if the file was found and removed, false otherwise.
+ */
+MPQFS_API bool mpqfs_writer_remove_file(mpqfs_writer_t *writer,
+    const char *filename);
+
+/**
+ * Copy a file from an existing archive into the writer without
+ * decompressing or recompressing it.
+ *
+ * The raw on-disk data (sector offset table + compressed sectors) is
+ * read from @p archive and written directly to the new archive.  This
+ * is both memory-efficient (only one file's compressed data in RAM at
+ * a time) and CPU-efficient (no decompression/recompression).
+ *
+ * The file is identified by its block table index in @p archive.
+ * It will be stored under @p filename in the new archive.
+ *
+ * @param writer       Writer handle.
+ * @param filename     Archive-relative filename for the new entry.
+ * @param archive      Open source archive to read from.
+ * @param block_index  Block table index of the file in @p archive.
+ * @return             true on success, false on error.
+ */
+MPQFS_API bool mpqfs_writer_carry_forward(mpqfs_writer_t *writer,
+    const char *filename,
+    mpqfs_archive_t *archive,
+    uint32_t block_index);
+
+/**
+ * Carry forward all valid files from an existing archive into the writer.
+ *
+ * This iterates over the source archive's hash and block tables and
+ * copies every valid file entry's raw compressed data into the new
+ * archive without decompressing or recompressing it.
+ *
+ * Because MPQ hash tables do not store filenames (only hashes), the
+ * original hash_a / hash_b values are preserved directly.  This means
+ * the carried-forward entries bypass filename-based hashing entirely.
+ *
+ * Files in the source whose hash_a/hash_b collide with a file already
+ * present in the writer (added via mpqfs_writer_add_file or a previous
+ * carry-forward) are silently skipped, so the caller can add or
+ * overwrite files before or after calling this function.
+ *
+ * This is used by DevilutionX's MpqWriter to preserve files from a
+ * previous save session when re-opening the same .sv file.
+ *
+ * @param writer   Writer handle.
+ * @param archive  Open source archive to read from.
+ * @return         true on success, false on error.
+ */
+MPQFS_API bool mpqfs_writer_carry_forward_all(mpqfs_writer_t *writer,
+    mpqfs_archive_t *archive);
+
+/**
  * Finalise the archive and close the writer.
  *
  * This writes the MPQ header, all file data, and the encrypted hash

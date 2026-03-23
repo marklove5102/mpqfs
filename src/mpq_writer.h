@@ -45,11 +45,17 @@ extern "C" {
  * ----------------------------------------------------------------------- */
 
 struct mpqfs_writer_file {
-	char *filename;           /* Archive-relative path (owned, heap-allocated) */
+	char *filename;           /* Archive-relative path (owned, heap-allocated)
+	                           * NULL for carry-forward entries that use raw hashes */
 	uint32_t offset;          /* Offset of file data from archive start       */
 	uint32_t compressed_size; /* Total on-disk size (offset table + sectors)   */
 	uint32_t file_size;       /* Original uncompressed size                    */
 	uint32_t flags;           /* Block flags (EXISTS, IMPLODE, etc.)           */
+	int removed;              /* Non-zero if this entry has been removed       */
+	int has_raw_hashes;       /* Non-zero if hash_a/hash_b are set directly   */
+	uint32_t hash_a;          /* Pre-computed MPQ_HASH_NAME_A (carry-forward)  */
+	uint32_t hash_b;          /* Pre-computed MPQ_HASH_NAME_B (carry-forward)  */
+	uint32_t src_hash_slot;   /* Hash table slot in source archive (carry-fwd) */
 };
 typedef struct mpqfs_writer_file mpqfs_writer_file_t;
 
@@ -72,7 +78,7 @@ struct mpqfs_writer {
 	uint32_t file_capacity; /* Allocated capacity of the files array    */
 
 	uint32_t data_start;  /* Offset where file data begins (after hdr+tables) */
-	uint32_t data_cursor;  /* Current write offset for next file's data        */
+	uint32_t data_cursor; /* Current write offset for next file's data        */
 
 	char error[256]; /* Last error message                       */
 };
