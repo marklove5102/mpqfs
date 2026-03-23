@@ -9,8 +9,8 @@
 #define MPQFS_MPQ_STREAM_H
 
 #include "mpq_archive.h"
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,59 +29,59 @@ extern "C" {
  * for the lifetime of any stream created from it.
  */
 typedef struct mpq_stream {
-    /* Back-pointer to the parent archive (not owned). */
-    mpqfs_archive_t *archive;
+	/* Back-pointer to the parent archive (not owned). */
+	mpqfs_archive_t *archive;
 
-    /* Index into the archive's block table. */
-    uint32_t block_index;
+	/* Index into the archive's block table. */
+	uint32_t block_index;
 
-    /* Convenience copies from the block table entry. */
-    uint32_t file_offset;       /* Byte offset of file data from archive start */
-    uint32_t compressed_size;   /* Total compressed size on disk              */
-    uint32_t file_size;         /* Uncompressed file size                     */
-    uint32_t flags;             /* Block flags (MPQ_FILE_*)                   */
+	/* Convenience copies from the block table entry. */
+	uint32_t file_offset;     /* Byte offset of file data from archive start */
+	uint32_t compressed_size; /* Total compressed size on disk              */
+	uint32_t file_size;       /* Uncompressed file size                     */
+	uint32_t flags;           /* Block flags (MPQ_FILE_*)                   */
 
-    /* Sector geometry. */
-    uint32_t sector_size;       /* Bytes per uncompressed sector              */
-    uint32_t sector_count;      /* Number of sectors (including partial last) */
+	/* Sector geometry. */
+	uint32_t sector_size;  /* Bytes per uncompressed sector              */
+	uint32_t sector_count; /* Number of sectors (including partial last) */
 
-    /*
-     * Sector offset table — only present for compressed files.
-     * Has (sector_count + 1) entries; entry[i] is the byte offset (relative to
-     * file_offset) of sector i's compressed data, and entry[sector_count] marks
-     * the end.  NULL for files stored without compression.
-     */
-    uint32_t *sector_offsets;
+	/*
+	 * Sector offset table — only present for compressed files.
+	 * Has (sector_count + 1) entries; entry[i] is the byte offset (relative to
+	 * file_offset) of sector i's compressed data, and entry[sector_count] marks
+	 * the end.  NULL for files stored without compression.
+	 */
+	uint32_t *sector_offsets;
 
-    /*
-     * Decryption key for this file (0 if not encrypted).
-     * Derived from the filename via mpq_file_key() when the stream is
-     * opened with mpq_stream_open_named().
-     */
-    uint32_t file_key;
+	/*
+	 * Decryption key for this file (0 if not encrypted).
+	 * Derived from the filename via mpq_file_key() when the stream is
+	 * opened with mpq_stream_open_named().
+	 */
+	uint32_t file_key;
 
-    /*
-     * Cached decompressed sector buffer.
-     * Allocated to sector_size bytes.
-     */
-    uint8_t *sector_buf;
+	/*
+	 * Cached decompressed sector buffer.
+	 * Allocated to sector_size bytes.
+	 */
+	uint8_t *sector_buf;
 
-    /* Index of the sector currently held in sector_buf, or (uint32_t)-1. */
-    uint32_t cached_sector;
+	/* Index of the sector currently held in sector_buf, or (uint32_t)-1. */
+	uint32_t cached_sector;
 
-    /* Number of valid bytes in sector_buf (may be < sector_size for last sector). */
-    uint32_t cached_sector_len;
+	/* Number of valid bytes in sector_buf (may be < sector_size for last sector). */
+	uint32_t cached_sector_len;
 
-    /*
-     * Reusable buffer for reading compressed sector data.
-     * Allocated on first use and grown as needed, avoiding a malloc/free
-     * per sector read.  Freed when the stream is closed.
-     */
-    uint8_t *comp_buf;
-    uint32_t comp_buf_cap;
+	/*
+	 * Reusable buffer for reading compressed sector data.
+	 * Allocated on first use and grown as needed, avoiding a malloc/free
+	 * per sector read.  Freed when the stream is closed.
+	 */
+	uint8_t *comp_buf;
+	uint32_t comp_buf_cap;
 
-    /* Current logical read position within the uncompressed file. */
-    uint64_t position;
+	/* Current logical read position within the uncompressed file. */
+	uint64_t position;
 } mpq_stream_t;
 
 /*
@@ -91,7 +91,7 @@ typedef struct mpq_stream {
  * This variant does NOT support encrypted files — use mpq_stream_open_named()
  * instead when the file may be encrypted.
  */
-mpq_stream_t *mpq_stream_open(mpqfs_archive_t *archive, uint32_t block_index);
+mpq_stream_t *mpq_stream_open(mpqfs_archive_t *archive, uint32_t blockIndex);
 
 /*
  * Open a stream to the file identified by `block_index`, using `filename`
@@ -104,8 +104,8 @@ mpq_stream_t *mpq_stream_open(mpqfs_archive_t *archive, uint32_t block_index);
  * Returns NULL on error (sets mpqfs_last_error).
  */
 mpq_stream_t *mpq_stream_open_named(mpqfs_archive_t *archive,
-                                     uint32_t block_index,
-                                     const char *filename);
+    uint32_t blockIndex,
+    const char *filename);
 
 /*
  * Close a stream and free all associated memory.

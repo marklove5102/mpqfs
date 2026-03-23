@@ -12,8 +12,8 @@
 #ifndef MPQFS_MPQ_CRYPTO_H
 #define MPQFS_MPQ_CRYPTO_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,11 +29,11 @@ void mpq_crypto_init(void);
 /*
  * Hash types used by mpq_hash_string().
  */
-#define MPQ_HASH_TABLE_INDEX  0x000   /* hash table bucket index   */
-#define MPQ_HASH_NAME_A       0x100   /* verification hash A       */
-#define MPQ_HASH_NAME_B       0x200   /* verification hash B       */
-#define MPQ_HASH_FILE_KEY     0x300   /* file decryption key       */
-#define MPQ_HASH_KEY2_MIX    0x400   /* encrypt/decrypt key2 mix  */
+#define MPQ_HASH_TABLE_INDEX 0x000 /* hash table bucket index   */
+#define MPQ_HASH_NAME_A 0x100      /* verification hash A       */
+#define MPQ_HASH_NAME_B 0x200      /* verification hash B       */
+#define MPQ_HASH_FILE_KEY 0x300    /* file decryption key       */
+#define MPQ_HASH_KEY2_MIX 0x400    /* encrypt/decrypt key2 mix  */
 
 /*
  * Compute an MPQ hash for the given NUL-terminated string.
@@ -42,7 +42,7 @@ void mpq_crypto_init(void);
  * Filenames are treated case-insensitively and backslash / forward
  * slash are normalised to backslash before hashing.
  */
-uint32_t mpq_hash_string(const char *str, uint32_t hash_type);
+uint32_t mpq_hash_string(const char *str, uint32_t hashType);
 
 /*
  * Decrypt an array of uint32_t values in-place.
@@ -65,8 +65,8 @@ void mpq_encrypt_block(uint32_t *data, size_t count, uint32_t key);
  * block offset and uncompressed size (flag 0x00020000 —
  * MPQ_FILE_FIX_KEY).
  */
-uint32_t mpq_file_key(const char *path, uint32_t block_offset,
-                      uint32_t file_size, int adjust);
+uint32_t mpq_file_key(const char *path, uint32_t blockOffset,
+    uint32_t fileSize, int adjust);
 
 #ifdef __cplusplus
 }

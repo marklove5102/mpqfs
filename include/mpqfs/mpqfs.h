@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>  /* FILE* for mpqfs_open_fp */
+#include <stdio.h> /* FILE* for mpqfs_open_fp */
 
 /* -----------------------------------------------------------------------
  * Portability: bool
@@ -30,7 +30,7 @@
  * ----------------------------------------------------------------------- */
 
 #ifndef __cplusplus
-#  include <stdbool.h>
+#include <stdbool.h>
 #endif
 
 /* -----------------------------------------------------------------------
@@ -39,18 +39,18 @@
  * ----------------------------------------------------------------------- */
 
 #ifndef MPQFS_HAS_FDOPEN
-#  if defined(__PS2__) || defined(_3DS) || defined(__vita__) \
-      || defined(__NX__) /* Nintendo Switch (devkitPro) */ \
-      || defined(NXDK) /* original Xbox (nxdk) */ \
-      || defined(__UWP__) /* Xbox UWP / Gaming Desktop */
-#    define MPQFS_HAS_FDOPEN 0
-#  elif defined(_MSC_VER) || defined(__DJGPP__) || defined(__unix__) \
-        || defined(__APPLE__) || defined(__linux__) || defined(__ANDROID__) \
-        || defined(__EMSCRIPTEN__) || defined(__CYGWIN__) || defined(__HAIKU__)
-#    define MPQFS_HAS_FDOPEN 1
-#  else
-#    define MPQFS_HAS_FDOPEN 0
-#  endif
+#if defined(__PS2__) || defined(_3DS) || defined(__vita__) \
+    || defined(__NX__)  /* Nintendo Switch (devkitPro) */  \
+    || defined(NXDK)    /* original Xbox (nxdk) */         \
+    || defined(__UWP__) /* Xbox UWP / Gaming Desktop */
+#define MPQFS_HAS_FDOPEN 0
+#elif defined(_MSC_VER) || defined(__DJGPP__) || defined(__unix__)      \
+    || defined(__APPLE__) || defined(__linux__) || defined(__ANDROID__) \
+    || defined(__EMSCRIPTEN__) || defined(__CYGWIN__) || defined(__HAIKU__)
+#define MPQFS_HAS_FDOPEN 1
+#else
+#define MPQFS_HAS_FDOPEN 0
+#endif
 #endif
 
 /* -----------------------------------------------------------------------
@@ -58,14 +58,14 @@
  * ----------------------------------------------------------------------- */
 
 #if defined(MPQFS_USE_SDL3) && MPQFS_USE_SDL3
-#   include <SDL3/SDL_iostream.h>
-#   include <SDL3/SDL.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_iostream.h>
 #elif defined(MPQFS_USE_SDL2) && MPQFS_USE_SDL2
-#   include <SDL_rwops.h>
-#   include <SDL.h>
+#include <SDL.h>
+#include <SDL_rwops.h>
 #elif defined(MPQFS_USE_SDL1) && MPQFS_USE_SDL1
-#   include <SDL_rwops.h>
-#   include <SDL.h>
+#include <SDL.h>
+#include <SDL_rwops.h>
 #endif
 
 /* -----------------------------------------------------------------------
@@ -77,22 +77,22 @@
  * ----------------------------------------------------------------------- */
 
 #ifndef MPQFS_API
-#  if defined(MPQFS_SHARED)
-#    if defined(_WIN32) || defined(__CYGWIN__)
-#      ifdef MPQFS_BUILDING
-#        define MPQFS_API __declspec(dllexport)
-#      else
-#        define MPQFS_API __declspec(dllimport)
-#      endif
-#    elif defined(__GNUC__) && __GNUC__ >= 4
-#      define MPQFS_API __attribute__((visibility("default")))
-#    else
-#      define MPQFS_API
-#    endif
-#  else
-     /* Static library — no special annotation needed. */
-#    define MPQFS_API
-#  endif
+#if defined(MPQFS_SHARED)
+#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef MPQFS_BUILDING
+#define MPQFS_API __declspec(dllexport)
+#else
+#define MPQFS_API __declspec(dllimport)
+#endif
+#elif defined(__GNUC__) && __GNUC__ >= 4
+#define MPQFS_API __attribute__((visibility("default")))
+#else
+#define MPQFS_API
+#endif
+#else
+/* Static library — no special annotation needed. */
+#define MPQFS_API
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -113,7 +113,7 @@ extern "C" {
 typedef struct mpqfs_archive mpqfs_archive_t;
 #endif
 #ifndef MPQFS_WRITER_T_DEFINED
-typedef struct mpqfs_writer  mpqfs_writer_t;
+typedef struct mpqfs_writer mpqfs_writer_t;
 #endif
 
 /* -----------------------------------------------------------------------
@@ -282,7 +282,7 @@ MPQFS_API size_t mpqfs_file_size_from_hash(mpqfs_archive_t *archive, uint32_t ha
  * @return          Pointer to the file data, or NULL on error.
  */
 MPQFS_API void *mpqfs_read_file(mpqfs_archive_t *archive, const char *filename,
-                                size_t *out_size);
+    size_t *out_size);
 
 /**
  * Read an entire file into a caller-supplied buffer.
@@ -294,8 +294,8 @@ MPQFS_API void *mpqfs_read_file(mpqfs_archive_t *archive, const char *filename,
  * @return            Number of bytes written to the buffer, or 0 on error.
  */
 MPQFS_API size_t mpqfs_read_file_into(mpqfs_archive_t *archive,
-                                      const char *filename,
-                                      void *buffer, size_t buffer_size);
+    const char *filename,
+    void *buffer, size_t buffer_size);
 
 /* -----------------------------------------------------------------------
  * SDL streaming adapters
@@ -323,7 +323,7 @@ MPQFS_API size_t mpqfs_read_file_into(mpqfs_archive_t *archive,
  * @return          A seekable, read-only SDL_IOStream, or NULL on error.
  */
 MPQFS_API SDL_IOStream *mpqfs_open_io(mpqfs_archive_t *archive,
-                                      const char *filename);
+    const char *filename);
 
 /**
  * Create an SDL 3 IOStream for a file identified by hash table entry.
@@ -340,7 +340,7 @@ MPQFS_API SDL_IOStream *mpqfs_open_io(mpqfs_archive_t *archive,
  * @return         A seekable, read-only SDL_IOStream, or NULL on error.
  */
 MPQFS_API SDL_IOStream *mpqfs_open_io_from_hash(mpqfs_archive_t *archive,
-                                                uint32_t hash);
+    uint32_t hash);
 
 /**
  * Create an SDL 3 IOStream that owns an independent archive clone.
@@ -353,7 +353,7 @@ MPQFS_API SDL_IOStream *mpqfs_open_io_from_hash(mpqfs_archive_t *archive,
  * @return          A seekable, read-only SDL_IOStream, or NULL on error.
  */
 MPQFS_API SDL_IOStream *mpqfs_open_io_threadsafe(mpqfs_archive_t *archive,
-                                                 const char *filename);
+    const char *filename);
 
 /**
  * Create an SDL 3 IOStream that owns an independent archive clone,
@@ -384,7 +384,7 @@ MPQFS_API SDL_IOStream *mpqfs_open_io_threadsafe_from_hash(
  * @return          A seekable, read-only SDL_RWops, or NULL on error.
  */
 MPQFS_API SDL_RWops *mpqfs_open_rwops(mpqfs_archive_t *archive,
-                                      const char *filename);
+    const char *filename);
 
 /**
  * Create an SDL 2 RWops for a file identified by hash table entry.
@@ -401,7 +401,7 @@ MPQFS_API SDL_RWops *mpqfs_open_rwops(mpqfs_archive_t *archive,
  * @return         A seekable, read-only SDL_RWops, or NULL on error.
  */
 MPQFS_API SDL_RWops *mpqfs_open_rwops_from_hash(mpqfs_archive_t *archive,
-                                                uint32_t hash);
+    uint32_t hash);
 
 /**
  * Create an SDL 2 RWops that owns an independent archive clone.
@@ -414,7 +414,7 @@ MPQFS_API SDL_RWops *mpqfs_open_rwops_from_hash(mpqfs_archive_t *archive,
  * @return          A seekable, read-only SDL_RWops, or NULL on error.
  */
 MPQFS_API SDL_RWops *mpqfs_open_rwops_threadsafe(mpqfs_archive_t *archive,
-                                                 const char *filename);
+    const char *filename);
 
 /**
  * Create an SDL 2 RWops that owns an independent archive clone,
@@ -445,7 +445,7 @@ MPQFS_API SDL_RWops *mpqfs_open_rwops_threadsafe_from_hash(
  * @return          A seekable, read-only SDL_RWops, or NULL on error.
  */
 MPQFS_API SDL_RWops *mpqfs_open_rwops(mpqfs_archive_t *archive,
-                                      const char *filename);
+    const char *filename);
 
 /**
  * Create an SDL 1.2 RWops for a file identified by hash table entry.
@@ -462,7 +462,7 @@ MPQFS_API SDL_RWops *mpqfs_open_rwops(mpqfs_archive_t *archive,
  * @return         A seekable, read-only SDL_RWops, or NULL on error.
  */
 MPQFS_API SDL_RWops *mpqfs_open_rwops_from_hash(mpqfs_archive_t *archive,
-                                                uint32_t hash);
+    uint32_t hash);
 
 /**
  * Create an SDL 1.2 RWops that owns an independent archive clone.
@@ -475,7 +475,7 @@ MPQFS_API SDL_RWops *mpqfs_open_rwops_from_hash(mpqfs_archive_t *archive,
  * @return          A seekable, read-only SDL_RWops, or NULL on error.
  */
 MPQFS_API SDL_RWops *mpqfs_open_rwops_threadsafe(mpqfs_archive_t *archive,
-                                                 const char *filename);
+    const char *filename);
 
 /**
  * Create an SDL 1.2 RWops that owns an independent archive clone,
@@ -544,7 +544,7 @@ MPQFS_API SDL_RWops *mpqfs_open_rwops_threadsafe_from_hash(
  * @return                 Writer handle, or NULL on error (see mpqfs_last_error()).
  */
 MPQFS_API mpqfs_writer_t *mpqfs_writer_create(const char *path,
-                                              uint32_t hash_table_size);
+    uint32_t hash_table_size);
 
 /**
  * Create a new MPQ archive writer targeting an already-open FILE pointer.
@@ -559,7 +559,7 @@ MPQFS_API mpqfs_writer_t *mpqfs_writer_create(const char *path,
  * @return                 Writer handle, or NULL on error.
  */
 MPQFS_API mpqfs_writer_t *mpqfs_writer_create_fp(FILE *fp,
-                                                 uint32_t hash_table_size);
+    uint32_t hash_table_size);
 
 #if MPQFS_HAS_FDOPEN
 
@@ -574,7 +574,7 @@ MPQFS_API mpqfs_writer_t *mpqfs_writer_create_fp(FILE *fp,
  * @return                 Writer handle, or NULL on error.
  */
 MPQFS_API mpqfs_writer_t *mpqfs_writer_create_fd(int fd,
-                                                 uint32_t hash_table_size);
+    uint32_t hash_table_size);
 
 #endif /* MPQFS_HAS_FDOPEN */
 
@@ -599,8 +599,8 @@ MPQFS_API mpqfs_writer_t *mpqfs_writer_create_fd(int fd,
  * @return          true on success, false on error.
  */
 MPQFS_API bool mpqfs_writer_add_file(mpqfs_writer_t *writer,
-                                     const char *filename,
-                                     const void *data, size_t size);
+    const char *filename,
+    const void *data, size_t size);
 
 /**
  * Finalise the archive and close the writer.
@@ -674,7 +674,7 @@ MPQFS_API void mpqfs_crypto_init(void);
  * @param hash_type  One of the MPQFS_HASH_* constants.
  * @return           The 32-bit hash value.
  */
-MPQFS_API uint32_t mpqfs_hash_string(const char *str, uint32_t hash_type);
+MPQFS_API uint32_t mpqfs_hash_string(const char *str, uint32_t hashType);
 
 /**
  * Length-delimited variant (no NUL terminator required).
@@ -685,7 +685,7 @@ MPQFS_API uint32_t mpqfs_hash_string(const char *str, uint32_t hash_type);
  * @return           The 32-bit hash value.
  */
 MPQFS_API uint32_t mpqfs_hash_string_s(const char *str, size_t len,
-                                       uint32_t hash_type);
+    uint32_t hashType);
 
 /**
  * Encrypt an array of uint32_t values in-place.
@@ -714,16 +714,16 @@ MPQFS_API void mpqfs_encrypt_block(uint32_t *data, size_t count, uint32_t key);
 MPQFS_API void mpqfs_decrypt_block(uint32_t *data, size_t count, uint32_t key);
 
 /* Hash-type constants */
-#define MPQFS_HASH_TABLE_INDEX  0x000
-#define MPQFS_HASH_NAME_A       0x100
-#define MPQFS_HASH_NAME_B       0x200
-#define MPQFS_HASH_FILE_KEY     0x300
+#define MPQFS_HASH_TABLE_INDEX 0x000
+#define MPQFS_HASH_NAME_A 0x100
+#define MPQFS_HASH_NAME_B 0x200
+#define MPQFS_HASH_FILE_KEY 0x300
 
 /* Pre-calculated encryption keys for the block and hash tables.
  * These are hash("(block table)", MPQFS_HASH_FILE_KEY) and
  * hash("(hash table)", MPQFS_HASH_FILE_KEY) respectively.       */
-#define MPQFS_BLOCK_TABLE_KEY   3968054179u
-#define MPQFS_HASH_TABLE_KEY    3283040112u
+#define MPQFS_BLOCK_TABLE_KEY 3968054179u
+#define MPQFS_HASH_TABLE_KEY 3283040112u
 
 /* -----------------------------------------------------------------------
  * Convenience: compute a file-hash triple
@@ -741,9 +741,9 @@ MPQFS_API void mpqfs_decrypt_block(uint32_t *data, size_t count, uint32_t key);
  * @param out_hash_b Receives hash(filename, MPQFS_HASH_NAME_B).  May be NULL.
  */
 MPQFS_API void mpqfs_file_hash(const char *filename,
-                               uint32_t *out_index,
-                               uint32_t *out_hash_a,
-                               uint32_t *out_hash_b);
+    uint32_t *outIndex,
+    uint32_t *outHashA,
+    uint32_t *outHashB);
 
 /**
  * Length-delimited variant (no NUL terminator required).
@@ -755,9 +755,9 @@ MPQFS_API void mpqfs_file_hash(const char *filename,
  * @param out_hash_b Receives hash(filename, MPQFS_HASH_NAME_B).  May be NULL.
  */
 MPQFS_API void mpqfs_file_hash_s(const char *filename, size_t len,
-                                 uint32_t *out_index,
-                                 uint32_t *out_hash_a,
-                                 uint32_t *out_hash_b);
+    uint32_t *outIndex,
+    uint32_t *outHashA,
+    uint32_t *outHashB);
 
 /* -----------------------------------------------------------------------
  * PKWARE DCL compress / decompress
@@ -781,9 +781,9 @@ MPQFS_API void mpqfs_file_hash_s(const char *filename, size_t len,
  * @param dict_bits  Dictionary size: 4 (1024), 5 (2048), or 6 (4096).
  * @return           0 on success, non-zero on error (output too small, etc.).
  */
-MPQFS_API int mpqfs_pk_implode(const uint8_t *src, size_t src_size,
-                               uint8_t *dst, size_t *dst_size,
-                               int dict_bits);
+MPQFS_API int mpqfs_pk_implode(const uint8_t *src, size_t srcSize,
+    uint8_t *dst, size_t *dstSize,
+    int dictBits);
 
 /**
  * PKWARE DCL "explode" — decompress src into dst.
@@ -797,8 +797,8 @@ MPQFS_API int mpqfs_pk_implode(const uint8_t *src, size_t src_size,
  * @param dst_size   In: capacity of dst.  Out: decompressed size.
  * @return           0 on success, non-zero on error (corrupt input, etc.).
  */
-MPQFS_API int mpqfs_pk_explode(const uint8_t *src, size_t src_size,
-                               uint8_t *dst, size_t *dst_size);
+MPQFS_API int mpqfs_pk_explode(const uint8_t *src, size_t srcSize,
+    uint8_t *dst, size_t *dstSize);
 
 #ifdef __cplusplus
 }

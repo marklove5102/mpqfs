@@ -2,6 +2,7 @@
 build/
 cmake-build-*/
 out/
+.cache/
 
 # IDE / editor files
 .idea/
@@ -20,6 +21,8 @@ out/
 *.dll
 *.lib
 *.exe
+*.mpq
+*.sv
 
 # CMake generated
 CMakeCache.txt
@@ -32,6 +35,12 @@ CTestTestfile.cmake
 
 # Test artifacts
 /tmp/mpqfs_test_*.mpq
+/test_mpqfs
+
+# Manual-run output
+*.pcx
+*_log.txt
+*_listfile.txt
 
 # Package files
 *.tar.gz

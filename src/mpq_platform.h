@@ -24,15 +24,15 @@
  * ----------------------------------------------------------------------- */
 
 #ifndef __cplusplus
-#  include <stdbool.h>
+#include <stdbool.h>
 #endif
 
 /* -----------------------------------------------------------------------
  * 2.  Standard integer types — always available in C99 / C++11.
  * ----------------------------------------------------------------------- */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /* -----------------------------------------------------------------------
  * 3.  MPQFS_THREAD_LOCAL
@@ -43,30 +43,30 @@
  * ----------------------------------------------------------------------- */
 
 #if defined(__cplusplus)
-   /* C++11 and later have thread_local as a keyword. */
-#  if __cplusplus >= 201103L && !defined(__PS2__) && !defined(__DJGPP__) \
-      && !defined(_3DS) && !defined(__vita__) && !defined(__EMSCRIPTEN__)
-#    define MPQFS_THREAD_LOCAL thread_local
-#  else
-#    define MPQFS_THREAD_LOCAL /* unavailable — degrade to plain static */
-#  endif
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L \
-      && !defined(__STDC_NO_THREADS__) \
-      && !defined(__PS2__) && !defined(__DJGPP__) \
-      && !defined(_3DS) && !defined(__vita__) && !defined(__EMSCRIPTEN__)
-   /* C11 _Thread_local */
-#  define MPQFS_THREAD_LOCAL _Thread_local
-#elif defined(__GNUC__) && !defined(__PS2__) && !defined(__DJGPP__) \
-      && !defined(_3DS) && !defined(__vita__) && !defined(__EMSCRIPTEN__)
-   /* GCC / Clang extension (works even in C99 mode on most hosts). */
-#  define MPQFS_THREAD_LOCAL __thread
-#elif defined(_MSC_VER)
-   /* MSVC */
-#  define MPQFS_THREAD_LOCAL __declspec(thread)
+/* C++11 and later have thread_local as a keyword. */
+#if __cplusplus >= 201103L && !defined(__PS2__) && !defined(__DJGPP__) \
+    && !defined(_3DS) && !defined(__vita__) && !defined(__EMSCRIPTEN__)
+#define MPQFS_THREAD_LOCAL thread_local
 #else
-   /* No TLS — fall back to process-global.  This is correct on any
-    * platform that doesn't support threads in the first place. */
-#  define MPQFS_THREAD_LOCAL /* nothing */
+#define MPQFS_THREAD_LOCAL /* unavailable — degrade to plain static */
+#endif
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L \
+    && !defined(__STDC_NO_THREADS__)                           \
+    && !defined(__PS2__) && !defined(__DJGPP__)                \
+    && !defined(_3DS) && !defined(__vita__) && !defined(__EMSCRIPTEN__)
+/* C11 _Thread_local */
+#define MPQFS_THREAD_LOCAL _Thread_local
+#elif defined(__GNUC__) && !defined(__PS2__) && !defined(__DJGPP__) \
+    && !defined(_3DS) && !defined(__vita__) && !defined(__EMSCRIPTEN__)
+/* GCC / Clang extension (works even in C99 mode on most hosts). */
+#define MPQFS_THREAD_LOCAL __thread
+#elif defined(_MSC_VER)
+/* MSVC */
+#define MPQFS_THREAD_LOCAL __declspec(thread)
+#else
+/* No TLS — fall back to process-global.  This is correct on any
+ * platform that doesn't support threads in the first place. */
+#define MPQFS_THREAD_LOCAL /* nothing */
 #endif
 
 /* -----------------------------------------------------------------------
@@ -78,26 +78,26 @@
  * ----------------------------------------------------------------------- */
 
 #if defined(__PS2__) || defined(_3DS) || defined(__vita__) \
-    || defined(__NX__) /* Nintendo Switch (devkitPro) */ \
-    || defined(NXDK) /* original Xbox (nxdk) */ \
+    || defined(__NX__)  /* Nintendo Switch (devkitPro) */  \
+    || defined(NXDK)    /* original Xbox (nxdk) */         \
     || defined(__UWP__) /* Xbox UWP / Gaming Desktop */
-   /* Console SDKs generally do not provide POSIX fd operations. */
-#  define MPQFS_HAS_FDOPEN 0
+                        /* Console SDKs generally do not provide POSIX fd operations. */
+#define MPQFS_HAS_FDOPEN 0
 #elif defined(_MSC_VER)
-   /* MSVC desktop provides _fdopen(). */
-#  define MPQFS_HAS_FDOPEN 1
-#  ifndef _CRT_DECLARE_NONSTD
-#    include <io.h>
-#  endif
-#  include <stdio.h>
-#  define fdopen _fdopen
-#elif defined(__DJGPP__) || defined(__unix__) || defined(__APPLE__) \
-      || defined(__linux__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) \
-      || defined(__CYGWIN__) || defined(__HAIKU__)
-#  define MPQFS_HAS_FDOPEN 1
+/* MSVC desktop provides _fdopen(). */
+#define MPQFS_HAS_FDOPEN 1
+#ifndef _CRT_DECLARE_NONSTD
+#include <io.h>
+#endif
+#include <stdio.h>
+#define fdopen _fdopen
+#elif defined(__DJGPP__) || defined(__unix__) || defined(__APPLE__)          \
+    || defined(__linux__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__) \
+    || defined(__CYGWIN__) || defined(__HAIKU__)
+#define MPQFS_HAS_FDOPEN 1
 #else
-   /* Unknown platform — assume unavailable; users can override. */
-#  define MPQFS_HAS_FDOPEN 0
+/* Unknown platform — assume unavailable; users can override. */
+#define MPQFS_HAS_FDOPEN 0
 #endif
 
 /* -----------------------------------------------------------------------
@@ -114,27 +114,27 @@
 
 /* Try compiler-provided macros first. */
 #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
-#  if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#    define MPQFS_BIG_ENDIAN 1
-#  else
-#    define MPQFS_BIG_ENDIAN 0
-#  endif
-#elif defined(__BIG_ENDIAN__) || defined(__ARMEB__) || defined(__THUMBEB__) \
-      || defined(__MIPSEB__) || defined(_MIPSEB) || defined(__AARCH64EB__)
-#  define MPQFS_BIG_ENDIAN 1
-#elif defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || defined(__THUMBEL__) \
-      || defined(__MIPSEL__) || defined(_MIPSEL) || defined(__AARCH64EL__)   \
-      || defined(_M_IX86) || defined(_M_X64) || defined(_M_AMD64)           \
-      || defined(__i386__) || defined(__x86_64__) || defined(__ia64__)       \
-      || defined(__alpha__) || defined(__riscv) || defined(__EMSCRIPTEN__)   \
-      || defined(__wasm__) || defined(__PS2__) || defined(__DJGPP__)
-#  define MPQFS_BIG_ENDIAN 0
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define MPQFS_BIG_ENDIAN 1
 #else
-   /* Conservative default — assume LE but warn. */
-#  define MPQFS_BIG_ENDIAN 0
-#  if defined(__GNUC__) || defined(__clang__)
-#    warning "mpqfs: unable to detect endianness — assuming little-endian"
-#  endif
+#define MPQFS_BIG_ENDIAN 0
+#endif
+#elif defined(__BIG_ENDIAN__) || defined(__ARMEB__) || defined(__THUMBEB__) \
+    || defined(__MIPSEB__) || defined(_MIPSEB) || defined(__AARCH64EB__)
+#define MPQFS_BIG_ENDIAN 1
+#elif defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || defined(__THUMBEL__) \
+    || defined(__MIPSEL__) || defined(_MIPSEL) || defined(__AARCH64EL__)       \
+    || defined(_M_IX86) || defined(_M_X64) || defined(_M_AMD64)                \
+    || defined(__i386__) || defined(__x86_64__) || defined(__ia64__)           \
+    || defined(__alpha__) || defined(__riscv) || defined(__EMSCRIPTEN__)       \
+    || defined(__wasm__) || defined(__PS2__) || defined(__DJGPP__)
+#define MPQFS_BIG_ENDIAN 0
+#else
+/* Conservative default — assume LE but warn. */
+#define MPQFS_BIG_ENDIAN 0
+#if defined(__GNUC__) || defined(__clang__)
+#warning "mpqfs: unable to detect endianness — assuming little-endian"
+#endif
 #endif
 
 /* -----------------------------------------------------------------------
@@ -147,21 +147,21 @@
 static inline uint16_t mpqfs_le16(uint16_t v)
 {
 #if MPQFS_BIG_ENDIAN
-    return (uint16_t)((v >> 8) | (v << 8));
+	return (uint16_t)((v >> 8) | (v << 8));
 #else
-    return v;
+	return v;
 #endif
 }
 
 static inline uint32_t mpqfs_le32(uint32_t v)
 {
 #if MPQFS_BIG_ENDIAN
-    return ((v >> 24) & 0x000000FFu)
-         | ((v >>  8) & 0x0000FF00u)
-         | ((v <<  8) & 0x00FF0000u)
-         | ((v << 24) & 0xFF000000u);
+	return ((v >> 24) & 0x000000FFu)
+	    | ((v >> 8) & 0x0000FF00u)
+	    | ((v << 8) & 0x00FF0000u)
+	    | ((v << 24) & 0xFF000000u);
 #else
-    return v;
+	return v;
 #endif
 }
 
@@ -174,17 +174,17 @@ static inline uint32_t mpqfs_le32(uint32_t v)
 
 static inline uint16_t mpqfs_read_le16(const void *p)
 {
-    const uint8_t *b = (const uint8_t *)p;
-    return (uint16_t)((uint16_t)b[0] | ((uint16_t)b[1] << 8));
+	const uint8_t *b = (const uint8_t *)p;
+	return (uint16_t)((uint16_t)b[0] | ((uint16_t)b[1] << 8));
 }
 
 static inline uint32_t mpqfs_read_le32(const void *p)
 {
-    const uint8_t *b = (const uint8_t *)p;
-    return (uint32_t)b[0]
-         | ((uint32_t)b[1] << 8)
-         | ((uint32_t)b[2] << 16)
-         | ((uint32_t)b[3] << 24);
+	const uint8_t *b = (const uint8_t *)p;
+	return (uint32_t)b[0]
+	    | ((uint32_t)b[1] << 8)
+	    | ((uint32_t)b[2] << 16)
+	    | ((uint32_t)b[3] << 24);
 }
 
 /* -----------------------------------------------------------------------
@@ -193,18 +193,18 @@ static inline uint32_t mpqfs_read_le32(const void *p)
 
 static inline void mpqfs_write_le16(void *p, uint16_t v)
 {
-    uint8_t *b = (uint8_t *)p;
-    b[0] = (uint8_t)(v      );
-    b[1] = (uint8_t)(v >>  8);
+	uint8_t *b = (uint8_t *)p;
+	b[0] = (uint8_t)(v);
+	b[1] = (uint8_t)(v >> 8);
 }
 
 static inline void mpqfs_write_le32(void *p, uint32_t v)
 {
-    uint8_t *b = (uint8_t *)p;
-    b[0] = (uint8_t)(v      );
-    b[1] = (uint8_t)(v >>  8);
-    b[2] = (uint8_t)(v >> 16);
-    b[3] = (uint8_t)(v >> 24);
+	uint8_t *b = (uint8_t *)p;
+	b[0] = (uint8_t)(v);
+	b[1] = (uint8_t)(v >> 8);
+	b[2] = (uint8_t)(v >> 16);
+	b[3] = (uint8_t)(v >> 24);
 }
 
 /* -----------------------------------------------------------------------
@@ -215,16 +215,16 @@ static inline void mpqfs_write_le32(void *p, uint32_t v)
  * ----------------------------------------------------------------------- */
 
 #if defined(__cplusplus)
-   /* C++11 static_assert is always available in our minimum target. */
-#  define MPQFS_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+/* C++11 static_assert is always available in our minimum target. */
+#define MPQFS_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-#  define MPQFS_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#define MPQFS_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 #else
-   /* C99 fallback: typedef of a negative-size array. */
-#  define MPQFS_CONCAT_(a, b) a##b
-#  define MPQFS_CONCAT(a, b) MPQFS_CONCAT_(a, b)
-#  define MPQFS_STATIC_ASSERT(cond, msg) \
-       typedef char MPQFS_CONCAT(mpqfs_sa_, __LINE__)[(cond) ? 1 : -1]
+/* C99 fallback: typedef of a negative-size array. */
+#define MPQFS_CONCAT_(a, b) a##b
+#define MPQFS_CONCAT(a, b) MPQFS_CONCAT_(a, b)
+#define MPQFS_STATIC_ASSERT(cond, msg) \
+	typedef char MPQFS_CONCAT(mpqfs_sa_, __LINE__)[(cond) ? 1 : -1]
 #endif
 
 /* -----------------------------------------------------------------------
@@ -242,20 +242,20 @@ static inline void mpqfs_write_le32(void *p, uint32_t v)
  * ----------------------------------------------------------------------- */
 
 #if defined(MPQFS_SHARED)
-#  if defined(_WIN32) || defined(__CYGWIN__)
-#    ifdef MPQFS_BUILDING
-#      define MPQFS_API __declspec(dllexport)
-#    else
-#      define MPQFS_API __declspec(dllimport)
-#    endif
-#  elif defined(__GNUC__) && __GNUC__ >= 4
-#    define MPQFS_API __attribute__((visibility("default")))
-#  else
-#    define MPQFS_API
-#  endif
+#if defined(_WIN32) || defined(__CYGWIN__)
+#ifdef MPQFS_BUILDING
+#define MPQFS_API __declspec(dllexport)
 #else
-   /* Static library — no special annotation needed. */
-#  define MPQFS_API
+#define MPQFS_API __declspec(dllimport)
+#endif
+#elif defined(__GNUC__) && __GNUC__ >= 4
+#define MPQFS_API __attribute__((visibility("default")))
+#else
+#define MPQFS_API
+#endif
+#else
+/* Static library — no special annotation needed. */
+#define MPQFS_API
 #endif
 
 /* -----------------------------------------------------------------------
@@ -272,19 +272,19 @@ static inline void mpqfs_write_le32(void *p, uint32_t v)
  * ----------------------------------------------------------------------- */
 
 #if defined(_MSC_VER)
-#  define MPQFS_PACK_BEGIN  __pragma(pack(push, 1))
-#  define MPQFS_PACK_END    __pragma(pack(pop))
-#  define MPQFS_PACKED      /* MSVC uses #pragma pack instead */
+#define MPQFS_PACK_BEGIN __pragma(pack(push, 1))
+#define MPQFS_PACK_END __pragma(pack(pop))
+#define MPQFS_PACKED /* MSVC uses #pragma pack instead */
 #elif defined(__GNUC__) || defined(__clang__)
-#  define MPQFS_PACK_BEGIN  /* nothing */
-#  define MPQFS_PACK_END    /* nothing */
-#  define MPQFS_PACKED      __attribute__((packed))
+#define MPQFS_PACK_BEGIN /* nothing */
+#define MPQFS_PACK_END   /* nothing */
+#define MPQFS_PACKED __attribute__((packed))
 #else
-   /* Unknown compiler — hope for the best; the static assertions
-    * below will catch layout mismatches at compile time. */
-#  define MPQFS_PACK_BEGIN  /* nothing */
-#  define MPQFS_PACK_END    /* nothing */
-#  define MPQFS_PACKED      /* nothing */
+/* Unknown compiler — hope for the best; the static assertions
+ * below will catch layout mismatches at compile time. */
+#define MPQFS_PACK_BEGIN /* nothing */
+#define MPQFS_PACK_END   /* nothing */
+#define MPQFS_PACKED     /* nothing */
 #endif
 
 /* -----------------------------------------------------------------------
@@ -292,10 +292,10 @@ static inline void mpqfs_write_le32(void *p, uint32_t v)
  * ----------------------------------------------------------------------- */
 
 #if defined(__GNUC__) || defined(__clang__)
-#  define MPQFS_PRINTF_ATTR(fmt_idx, va_idx) \
-       __attribute__((format(printf, fmt_idx, va_idx)))
+#define MPQFS_PRINTF_ATTR(fmt_idx, va_idx) \
+	__attribute__((format(printf, fmt_idx, va_idx)))
 #else
-#  define MPQFS_PRINTF_ATTR(fmt_idx, va_idx) /* nothing */
+#define MPQFS_PRINTF_ATTR(fmt_idx, va_idx) /* nothing */
 #endif
 
 /* -----------------------------------------------------------------------

@@ -23,11 +23,11 @@
 #ifndef MPQFS_MPQ_WRITER_H
 #define MPQFS_MPQ_WRITER_H
 
-#include "mpq_platform.h"
 #include "mpq_archive.h"
+#include "mpq_platform.h"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -39,9 +39,9 @@ extern "C" {
  * ----------------------------------------------------------------------- */
 
 struct mpqfs_writer_file {
-    char     *filename;   /* Archive-relative path (owned, heap-allocated)   */
-    uint8_t  *data;       /* File contents (owned, heap-allocated copy)      */
-    uint32_t  size;       /* Uncompressed (= on-disk) size in bytes         */
+	char *filename; /* Archive-relative path (owned, heap-allocated)   */
+	uint8_t *data;  /* File contents (owned, heap-allocated copy)      */
+	uint32_t size;  /* Uncompressed (= on-disk) size in bytes         */
 };
 typedef struct mpqfs_writer_file mpqfs_writer_file_t;
 
@@ -52,18 +52,18 @@ typedef struct mpqfs_writer_file mpqfs_writer_file_t;
 #define MPQFS_WRITER_INITIAL_CAPACITY 16
 
 struct mpqfs_writer {
-    FILE     *fp;                /* Destination file handle                   */
-    int       owns_fd;           /* Non-zero if we should fclose(fp)         */
+	FILE *fp;    /* Destination file handle                   */
+	int owns_fd; /* Non-zero if we should fclose(fp)         */
 
-    uint32_t  hash_table_size;   /* Number of hash table entries (power of 2)*/
-    uint16_t  sector_size_shift; /* Sector size = 512 << shift (default 3)   */
+	uint32_t hash_table_size;   /* Number of hash table entries (power of 2)*/
+	uint16_t sector_size_shift; /* Sector size = 512 << shift (default 3)   */
 
-    /* Dynamic array of files to be written. */
-    mpqfs_writer_file_t *files;
-    uint32_t  file_count;        /* Number of files added so far             */
-    uint32_t  file_capacity;     /* Allocated capacity of the files array    */
+	/* Dynamic array of files to be written. */
+	mpqfs_writer_file_t *files;
+	uint32_t file_count;    /* Number of files added so far             */
+	uint32_t file_capacity; /* Allocated capacity of the files array    */
 
-    char      error[256];        /* Last error message                       */
+	char error[256]; /* Last error message                       */
 };
 typedef struct mpqfs_writer mpqfs_writer_t;
 #define MPQFS_WRITER_T_DEFINED
