@@ -28,10 +28,8 @@
 #include "mpq_explode.h"
 #include "mpq_platform.h"
 #include <stdint.h>
-#include <zconf.h>
 
 #if defined(MPQFS_HAS_ZLIB) && MPQFS_HAS_ZLIB
-#include <stddef.h>
 #include <zlib.h>
 #endif
 #if defined(MPQFS_HAS_BZIP2) && MPQFS_HAS_BZIP2
