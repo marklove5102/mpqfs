@@ -188,25 +188,29 @@ static mpqfs_writer_t *MpqWriterInit(FILE *fp, int ownsFd,
 		return NULL;
 	}
 	{
-		uint8_t zeroes[512];
-		memset(zeroes, 0, sizeof(zeroes));
-		uint32_t remaining = writer->data_start;
-		while (remaining > 0) {
-			uint32_t chunk = remaining < sizeof(zeroes)
-			    ? remaining
-			    : (uint32_t)sizeof(zeroes);
-			if (fwrite(zeroes, 1, chunk, fp) != chunk) {
-				mpq_writer_set_error(writer,
-				    "%s: failed to write placeholder: %s",
-				    sourceName, strerror(errno));
-				if (ownsFd && fp)
-					fclose(fp);
-				free(writer->files);
-				free(writer);
-				return NULL;
-			}
-			remaining -= chunk;
+		uint8_t *zeroes = (uint8_t *)calloc(1, writer->data_start);
+		if (!zeroes) {
+			mpq_writer_set_error(writer,
+			    "%s: out of memory for placeholder", sourceName);
+			if (ownsFd && fp)
+				fclose(fp);
+			free(writer->files);
+			free(writer);
+			return NULL;
 		}
+		size_t n = writer->data_start;
+		if (fwrite(zeroes, 1, n, fp) != n) {
+			mpq_writer_set_error(writer,
+			    "%s: failed to write placeholder: %s",
+			    sourceName, strerror(errno));
+			free(zeroes);
+			if (ownsFd && fp)
+				fclose(fp);
+			free(writer->files);
+			free(writer);
+			return NULL;
+		}
+		free(zeroes);
 	}
 
 	return writer;
