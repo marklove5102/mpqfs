@@ -28,6 +28,7 @@
 #include "mpq_explode.h"
 #include "mpq_platform.h"
 #include <stdint.h>
+#include <inttypes.h>
 
 #if defined(MPQFS_HAS_ZLIB) && MPQFS_HAS_ZLIB
 #include <zlib.h>
@@ -89,7 +90,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 
 		if (sectorEnd < sectorStart) {
 			mpq_set_error(archive, "mpq_stream: corrupt sector offsets "
-			                       "(sector %u: start=%u end=%u)",
+			                       "(sector %" PRIu32 ": start=%" PRIu32 " end=%" PRIu32 ")",
 			    sectorIdx, sectorStart, sectorEnd);
 			return -1;
 		}
@@ -113,7 +114,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 			        stream->sector_buf, expect)
 			    != 0) {
 				mpq_set_error(archive, "mpq_stream: read error on "
-				                       "uncompressed sector %u",
+				                       "uncompressed sector %" PRIu32,
 				    sectorIdx);
 				return -1;
 			}
@@ -134,7 +135,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 			uint8_t *newBuf = (uint8_t *)realloc(stream->comp_buf, compSize);
 			if (!newBuf) {
 				mpq_set_error(archive, "mpq_stream: out of memory for "
-				                       "compressed sector (%u bytes)",
+				                       "compressed sector (%" PRIu32 " bytes)",
 				    compSize);
 				return -1;
 			}
@@ -147,7 +148,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 		        compBuf, compSize)
 		    != 0) {
 			mpq_set_error(archive, "mpq_stream: read error on "
-			                       "compressed sector %u",
+			                       "compressed sector %" PRIu32,
 			    sectorIdx);
 			return -1;
 		}
@@ -170,7 +171,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 			    stream->sector_buf, expect);
 			if (rc != PK_OK) {
 				mpq_set_error(archive, "mpq_stream: PKWARE explode failed "
-				                       "on sector %u (rc=%d)",
+				                       "on sector %" PRIu32 " (rc=%d)",
 				    sectorIdx, rc);
 				return -1;
 			}
@@ -181,7 +182,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 			 */
 			if (compSize < 1) {
 				mpq_set_error(archive, "mpq_stream: zero-length compressed "
-				                       "sector %u",
+				                       "sector %" PRIu32,
 				    sectorIdx);
 				return -1;
 			}
@@ -206,7 +207,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 				    stream->sector_buf, expect);
 				if (rc != PK_OK) {
 					mpq_set_error(archive, "mpq_stream: PKWARE explode "
-					                       "(multi) failed on sector %u (rc=%d)",
+					                       "(multi) failed on sector %" PRIu32 " (rc=%d)",
 					    sectorIdx, rc);
 					return -1;
 				}
@@ -223,14 +224,14 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 				    srcData, (uLong)srcLen);
 				if (zrc != Z_OK) {
 					mpq_set_error(archive, "mpq_stream: zlib uncompress "
-					                       "failed on sector %u (zrc=%d)",
+					                       "failed on sector %" PRIu32 " (zrc=%d)",
 					    sectorIdx, zrc);
 					return -1;
 				}
 #else
 				mpq_set_error(archive, "mpq_stream: zlib decompression "
 				                       "required but mpqfs was built without zlib "
-				                       "support (sector %u)",
+				                       "support (sector %" PRIu32 ")",
 				    sectorIdx);
 				return -1;
 #endif
@@ -246,14 +247,14 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 				    0, 0);
 				if (brc != BZ_OK) {
 					mpq_set_error(archive, "mpq_stream: bzip2 decompress "
-					                       "failed on sector %u (brc=%d)",
+					                       "failed on sector %" PRIu32 " (brc=%d)",
 					    sectorIdx, brc);
 					return -1;
 				}
 #else
 				mpq_set_error(archive, "mpq_stream: bzip2 decompression "
 				                       "required but mpqfs was built without bzip2 "
-				                       "support (sector %u)",
+				                       "support (sector %" PRIu32 ")",
 				    sectorIdx);
 				return -1;
 #endif
@@ -270,7 +271,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 #endif
 				if (compMethod & ~supported) {
 					mpq_set_error(archive, "mpq_stream: unsupported compression "
-					                       "method 0x%02X on sector %u",
+					                       "method 0x%02X on sector %" PRIu32,
 					    (unsigned)compMethod, sectorIdx);
 					return -1;
 				}
@@ -290,7 +291,7 @@ static int MpqStreamLoadSector(mpq_stream_t *stream, uint32_t sectorIdx)
 	int64_t sectorAbs = fileAbs + ((int64_t)sectorIdx * (int64_t)stream->sector_size);
 
 	if (MpqRawRead(archive, sectorAbs, stream->sector_buf, expect) != 0) {
-		mpq_set_error(archive, "mpq_stream: read error on raw sector %u",
+		mpq_set_error(archive, "mpq_stream: read error on raw sector %" PRIu32,
 		    sectorIdx);
 		return -1;
 	}
@@ -326,7 +327,7 @@ mpq_stream_t *mpq_stream_open_named(mpqfs_archive_t *archive,
 	}
 
 	if (blockIndex >= archive->header.block_table_count) {
-		mpq_set_error(archive, "mpq_stream_open: block index %u out of range",
+		mpq_set_error(archive, "mpq_stream_open: block index %" PRIu32 " out of range",
 		    blockIndex);
 		return NULL;
 	}
@@ -334,14 +335,14 @@ mpq_stream_t *mpq_stream_open_named(mpqfs_archive_t *archive,
 	const mpq_block_entry_t *block = &archive->block_table[blockIndex];
 
 	if (!(block->flags & MPQ_FILE_EXISTS)) {
-		mpq_set_error(archive, "mpq_stream_open: block %u does not exist",
+		mpq_set_error(archive, "mpq_stream_open: block %" PRIu32 " does not exist",
 		    blockIndex);
 		return NULL;
 	}
 
 	/* If the file is encrypted, we MUST have the filename to derive the key. */
 	if ((block->flags & MPQ_FILE_ENCRYPTED) && !filename) {
-		mpq_set_error(archive, "mpq_stream_open: block %u is encrypted but "
+		mpq_set_error(archive, "mpq_stream_open: block %" PRIu32 " is encrypted but "
 		                       "no filename provided for key derivation",
 		    blockIndex);
 		return NULL;
@@ -427,7 +428,7 @@ mpq_stream_t *mpq_stream_open_named(mpqfs_archive_t *archive,
 
 		if (MpqRawRead(archive, absOffset, rawTable, tableBytes) != 0) {
 			mpq_set_error(archive, "mpq_stream_open: failed to read sector "
-			                       "offset table for block %u",
+			                       "offset table for block %" PRIu32,
 			    blockIndex);
 			free(rawTable);
 			free(stream->sector_offsets);
@@ -453,8 +454,8 @@ mpq_stream_t *mpq_stream_open_named(mpqfs_archive_t *archive,
 		/* Basic sanity check on the offset table. */
 		if (stream->sector_offsets[0] != tableBytes) {
 			mpq_set_error(archive, "mpq_stream_open: sector offset table "
-			                       "validation failed for block %u (expected first "
-			                       "entry %u, got %u — table may be encrypted or "
+			                       "validation failed for block %" PRIu32 " (expected first "
+			                       "entry %u, got %" PRIu32 " — table may be encrypted or "
 			                       "corrupt)",
 			    blockIndex,
 			    (unsigned)tableBytes,
@@ -479,7 +480,7 @@ mpq_stream_t *mpq_stream_open_named(mpqfs_archive_t *archive,
 			stream->sector_buf = (uint8_t *)malloc(stream->file_size);
 			if (!stream->sector_buf) {
 				mpq_set_error(archive, "mpq_stream_open: out of memory "
-				                       "for single-unit file (%u bytes)",
+				                       "for single-unit file (%" PRIu32 " bytes)",
 				    stream->file_size);
 				free(stream);
 				return NULL;

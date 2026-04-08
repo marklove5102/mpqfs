@@ -41,11 +41,12 @@
 
 /* Feature-test macro: must appear before any system headers so that
  * fdopen() and friends are declared in strict C99 mode on POSIX hosts. */
-#if !defined(_POSIX_C_SOURCE) && !defined(_WIN32)
+#if !defined(_POSIX_C_SOURCE) && !defined(_WIN32) && !defined(__DJGPP__)
 #define _POSIX_C_SOURCE 200112L
 #endif
 
 #include "mpq_explode.h"
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -444,7 +445,7 @@ bool mpqfs_writer_add_file(mpqfs_writer_t *writer, const char *filename,
 	if (writer->file_count >= writer->hash_table_size - 1) {
 		mpq_writer_set_error(writer,
 		    "mpqfs_writer_add_file: hash table full "
-		    "(%u files, table size %u)",
+		    "(%" PRIu32 " files, table size %" PRIu32 ")",
 		    writer->file_count, writer->hash_table_size);
 		return false;
 	}
@@ -624,7 +625,7 @@ bool mpqfs_writer_carry_forward(mpqfs_writer_t *writer,
 
 	if (block_index >= archive->header.block_table_count) {
 		mpq_writer_set_error(writer,
-		    "mpqfs_writer_carry_forward: block_index %u out of range",
+		    "mpqfs_writer_carry_forward: block_index %" PRIu32 " out of range",
 		    block_index);
 		return false;
 	}
@@ -633,7 +634,7 @@ bool mpqfs_writer_carry_forward(mpqfs_writer_t *writer,
 
 	if (!(blk->flags & MPQ_FILE_EXISTS)) {
 		mpq_writer_set_error(writer,
-		    "mpqfs_writer_carry_forward: block %u not in use",
+		    "mpqfs_writer_carry_forward: block %" PRIu32 " not in use",
 		    block_index);
 		return false;
 	}
@@ -854,7 +855,7 @@ bool mpqfs_writer_carry_forward_all(mpqfs_writer_t *writer,
 		if (MpqCopyRawBlock(writer, archive, blk, &rawSize) != 0) {
 			mpq_writer_set_error(writer,
 			    "mpqfs_writer_carry_forward_all: failed to copy "
-			    "block %u",
+			    "block %" PRIu32 "",
 			    he->block_index);
 			return false;
 		}

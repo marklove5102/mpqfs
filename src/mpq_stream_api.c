@@ -9,6 +9,7 @@
 #include "mpq_archive.h"
 #include "mpq_stream.h"
 
+#include <inttypes.h>
 #include <stdint.h>
 
 mpqfs_stream_t *mpqfs_stream_open(mpqfs_archive_t *archive,
@@ -33,7 +34,7 @@ mpqfs_stream_t *mpqfs_stream_open_from_hash(mpqfs_archive_t *archive,
 		return NULL;
 
 	if (hash >= archive->header.hash_table_count) {
-		mpq_set_error(archive, "mpqfs_stream_open_from_hash: invalid hash %u", hash);
+		mpq_set_error(archive, "mpqfs_stream_open_from_hash: invalid hash %" PRIu32 "", hash);
 		return NULL;
 	}
 
