@@ -27,8 +27,8 @@
 #include "mpq_crypto.h"
 #include "mpq_explode.h"
 #include "mpq_platform.h"
-#include <stdint.h>
 #include <inttypes.h>
+#include <stdint.h>
 
 #if defined(MPQFS_HAS_ZLIB) && MPQFS_HAS_ZLIB
 #include <zlib.h>
